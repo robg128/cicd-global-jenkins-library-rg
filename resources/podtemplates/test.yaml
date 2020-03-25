@@ -1,0 +1,168 @@
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  annotations: {}
+  labels:
+    jenkins: "slave"
+    jenkins/slave-docker: "true"
+spec:
+  containers:
+   
+    - args:
+      - "/var/jenkins_config/jenkins-agent"
+      command:
+      - "/bin/sh"
+      volumeMounts:
+      - name: jenkins-agent
+        mountPath: /var/jenkins_config
+      - name: "workspace-volume"
+        mountPath: "/home/jenkins/agent"
+      image: "jenkins/jnlp-slave:latest"
+      imagePullPolicy: "IfNotPresent"
+      name: "jnlp"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "docker:stable"
+      imagePullPolicy: "IfNotPresent"
+      env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      name: "docker"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/var/run/docker.sock"
+        name: "dock-sock-volume"
+        readOnly: false
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "node:12-alpine"
+      imagePullPolicy: "IfNotPresent"
+      name: "npm"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "gradle:jdk11"
+      imagePullPolicy: "IfNotPresent"
+      name: "gradle"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "maven:3-jdk-11"
+      imagePullPolicy: "IfNotPresent"
+      name: "maven"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "sonarsource/sonar-scanner-cli:latest"
+      imagePullPolicy: "IfNotPresent"
+      name: "sonar-scanner"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "alpine/helm:latest"
+      imagePullPolicy: "IfNotPresent"
+      name: "helm"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+
+  nodeSelector: {}
+  restartPolicy: "Never"
+  serviceAccount: "default"
+  volumes:
+  - hostPath:
+      path: "/var/run/docker.sock"
+    name: "dock-sock-volume"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
+  - name: jenkins-agent
+    configMap:
+      name: jenkins-agent
+  imagePullSecrets:
+  - name: "jfrog"

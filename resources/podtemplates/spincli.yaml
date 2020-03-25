@@ -1,0 +1,86 @@
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  annotations: {}
+  labels:
+    jenkins: "slave"
+    jenkins/slave-spin-docker: "true"
+spec:
+  containers:
+    - args:
+      - "/var/jenkins_config/jenkins-agent"
+      command:
+      - "/bin/sh"
+      volumeMounts:
+      - name: jenkins-agent
+        mountPath: /var/jenkins_config
+      - name: "workspace-volume"
+        mountPath: "/home/jenkins/agent"
+      image: "jenkins/jnlp-slave:latest"
+      imagePullPolicy: "IfNotPresent"
+      name: "jnlp"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        privileged: true
+      tty: true
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "monsternextsyd-docker.jfrog.io/bitnami/jsonnet:latest"
+      imagePullPolicy: "Always"
+      name: "jsonnet"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        # So the bitnami/jsonnet image sets USER: 1001, this user does not have permissions 
+        # therefore, we should run as jenkins user?
+        runAsUser: 1000
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+    - args:
+      - "-e"
+      command:
+      - "cat"
+      image: "monsternextsyd-docker.jfrog.io/torana-spin-cli:1.13.0"
+      imagePullPolicy: "Always"
+      name: "spin-cli"
+      resources:
+        limits: {}
+        requests: {}
+      securityContext:
+        runAsUser: 1000
+        privileged: true
+      tty: true
+      volumeMounts:
+      - mountPath: "/home/jenkins/agent"
+        name: "workspace-volume"
+        readOnly: false
+      workingDir: "/home/jenkins/agent"
+
+  nodeSelector: {}
+  restartPolicy: "Never"
+  serviceAccount: "default"
+  volumes:
+  - hostPath:
+      path: "/var/run/docker.sock"
+    name: "dock-sock-volume"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
+  - name: jenkins-agent
+    configMap:
+      name: jenkins-agent
+  imagePullSecrets:
+  - name: "jfrog"
